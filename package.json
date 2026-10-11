@@ -1,18 +1,17 @@
 {
-	"name": "omp-switch",
-	"version": "0.1.0",
-	"description": "Hotkey-toggled timed yolo approval mode for oh-my-pi: tool calls still prompt, then auto-approve after a countdown.",
+	"name": "omp-timed-approval",
+	"version": "0.2.0",
+	"description": "Hotkey-toggled countdown for oh-my-pi approval prompts: the approval mode keeps deciding what prompts; this adds a timer that auto-approves.",
 	"type": "module",
-	"main": "./omp-switch.ts",
+	"main": "./timed-approval.ts",
 	"license": "MIT",
-	"files": ["omp-switch.ts", "README.md", "LICENSE"],
+	"files": ["timed-approval.ts", "README.md", "LICENSE"],
 	"omp": {
-		"extensions": ["./omp-switch.ts"]
+		"extensions": ["./timed-approval.ts"]
 	},
-	"keywords": ["oh-my-pi", "omp", "pi-coding-agent", "extension", "approval", "yolo"],
-	"engines": {},
+	"keywords": ["oh-my-pi", "omp", "pi-coding-agent", "extension", "approval", "timeout"],
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/felipe/omp-switch.git"
+		"url": "git+https://github.com/felipe/omp-timed-approval.git"
 	}
 }
