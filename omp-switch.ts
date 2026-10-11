@@ -23,6 +23,39 @@ const DEFAULT_MODE: Mode = "yolo";
 const STATUS_KEY = "omp-switch";
 
 /**
+ * Native read-tier tools that pass through ungated in timed mode (fast, harmless).
+ * bash/write/edit/eval/task/computer/MCP tools and anything unknown still prompt —
+ * that is the point of the mode. `ask` is special-cased below (no timeout ever).
+ */
+const SKIP_TOOLS = new Set([
+	"read", "glob", "grep", "find", "ls", "ast_grep", "ask", "checkpoint", "rewind",
+	"todo", "wait", "yield", "think", "web_search", "recall", "reflect", "memory_edit", "jfind",
+]);
+
+/** Native-approval-prompt-style preview: command for bash, path for file tools, pattern for search. */
+function preview(toolName: string, input: unknown): string {
+	const rec = (input ?? {}) as Record<string, unknown>;
+	const str = (key: string): string => (typeof rec[key] === "string" ? (rec[key] as string) : "");
+	let s: string | undefined;
+	switch (toolName) {
+		case "bash": s = `$ ${str("command")}`; break;
+		case "read": case "edit": case "ast_edit": case "apply_patch": case "write": case "memory_edit":
+			s = str("path") || str("note");
+			if (toolName === "write" && typeof rec.content === "string" && rec.content.length > 0) {
+				s = `${s} (${rec.content.length} bytes)`;
+			}
+			break;
+		case "glob": s = `${str("pattern")} under ${str("path") || "."}`; break;
+		case "grep": s = `${str("pattern")} in ${str("path") || "."}`; break;
+		case "task": s = `${str("name") || str("agent")}: ${str("task") || str("description")}`; break;
+		case "eval": case "computer": s = str("code") || str("command"); break;
+		default: s = undefined;
+	}
+	if (s === undefined || s.trim() === "") s = JSON.stringify(input) ?? "";
+	return s.length > 200 ? `${s.slice(0, 200)}…` : s;
+}
+
+/**
  * Duck-typed handle for `tools.approvalMode`.
  *
  * Settings writes/reads are keyed by the setting's path segments, not handle
@@ -55,10 +88,8 @@ export default function (pi: ExtensionAPI) {
 	const autoStart = process.env.OMP_SWITCH_START === "1";
 
 	/** Native selector auto-picks the highlighted option when the timeout expires. */
-	async function timedPrompt(ctx: ExtensionContext, toolName: string, input: unknown): Promise<string | undefined> {
-		const text = JSON.stringify(input) ?? "";
-		const preview = text.length > 200 ? `${text.slice(0, 200)}…` : text;
-		return ctx.ui.select(`${toolName} — auto-approve in ${seconds}s\n${preview}`, ["Approve", "Deny"], {
+	async function timedPrompt(ctx: ExtensionContext, toolName: string, detail: string): Promise<string | undefined> {
+		return ctx.ui.select(`${toolName} — auto-approve in ${seconds}s\n${detail}`, ["Approve", "Deny"], {
 			initialIndex: 0,
 			timeout: seconds * 1000,
 		});
@@ -106,8 +137,9 @@ export default function (pi: ExtensionAPI) {
 		if (!saved || ctx.mode !== "tui") return;
 		// `ask` prompts the user inside its own execute with no timeout — never gate it.
 		// (Timeouts here are for approval only; questions must wait indefinitely.)
-		if (event.toolName === "ask") return;
-		const choice = await timedPrompt(ctx, event.toolName, event.input);
+		// Read-tier tools skip the countdown entirely (fast, harmless); write/exec still prompt.
+		if (SKIP_TOOLS.has(event.toolName) || event.toolName.startsWith("mcp__read")) return;
+		const choice = await timedPrompt(ctx, event.toolName, preview(event.toolName, event.input));
 		if (choice === "Deny") {
 			return { block: true, reason: `Denied by user during timed approval: ${event.toolName}` };
 		}
