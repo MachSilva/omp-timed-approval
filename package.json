@@ -6,6 +6,7 @@
 	"main": "./timed-approval.ts",
 	"license": "MIT",
 	"files": ["timed-approval.ts", "README.md", "LICENSE"],
+	"scripts": { "test": "bun test test/" },
 	"omp": {
 		"extensions": ["./timed-approval.ts"]
 	},

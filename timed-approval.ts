@@ -58,7 +58,7 @@ const approvalModeHandle: any = {
 };
 
 /** Approval-prompt-style preview: command for bash, path for file tools, pattern for search. */
-function preview(toolName: string, input: unknown): string {
+export function preview(toolName: string, input: unknown): string {
 	const rec = (input ?? {}) as Record<string, unknown>;
 	const str = (key: string): string => (typeof rec[key] === "string" ? (rec[key] as string) : "");
 	let s: string | undefined;
